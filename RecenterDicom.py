@@ -423,7 +423,7 @@ class SelectionMarkersUI():
     TopContrast=1.0
     base_dir=''
     SeriesInstanceUID=''
-    def __init__(self,base_dir,SeriesInstanceUID='',DICOMDIR=True):
+    def __init__(self,base_dir,SeriesInstanceUID='',DICOMDIR=True, ROT=False):
         '''
         The default constructor reads the data from the DICOMDIR selected by its series UID
         '''
@@ -432,7 +432,19 @@ class SelectionMarkersUI():
         if DICOMDIR:
             self.Images=ReadSpecificSeries(base_dir,SeriesInstanceUID)
         else:
-            self.Images=ReadImagesInDirectory(base_dir)
+            #self.Images=ReadImagesInDirectory(base_dir, SeriesInstanceUID)
+            import pydicom as pyd
+            from os import listdir
+            dcm_list = [x for x in listdir(base_dir)]
+            dcm_list.sort()
+            dcms = []
+            for dcm in dcm_list:
+                image = pyd.dcmread(base_dir + '/' + dcm)
+                if ROT:
+                    rot = np.rot90(image.pixel_array, ROT)
+                    image.PixelData = rot.tobytes()
+                dcms.append(image)
+            self.Images=dcms
         self.SpatialInfo=CalculateSpatialInfo(self.Images)
 
     def ShowData(self,TopContrast,nSlice,xCoord,yCoord,bShow3D=False):
